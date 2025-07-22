@@ -1,9 +1,10 @@
-use std::fs;
-use std::io::{Read, Write};
+use std::{env, fs, io::{BufRead, BufReader, Read, Write}};
 use std::net::{TcpListener, TcpStream};
 use std::path::Path;
 
 fn main() {
+    load_env_file(".env");
+
     let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
     println!("Server running on http://0.0.0.0:3000");
 
@@ -13,6 +14,30 @@ fn main() {
             Err(e) => eprintln!("Connection failed: {}", e),
         }
     }
+}
+
+fn load_env_file(path: &str) {
+    if let Ok(file) = fs::File::open(path) {
+        let reader = BufReader::new(file);
+        for line in reader.lines().flatten() {
+            if let Some((key, val)) = parse_env_line(&line) {
+                unsafe { env::set_var(key, val) };
+            }
+        }
+    } else {
+        eprintln!("Failed to open .env file at {}", path);
+    }
+}
+
+fn parse_env_line(line: &str) -> Option<(String, String)> {
+    let line = line.trim();
+    if line.is_empty() || line.starts_with("#") {
+        return None;
+    }
+    let mut parts = line.splitn(2, "=");
+    let key = parts.next()?.trim().to_string();
+    let val = parts.next()?.trim().trim_matches('"').to_string();
+    Some((key, val))
 }
 
 fn handle_connection(mut stream: TcpStream) {
@@ -32,7 +57,8 @@ fn handle_connection(mut stream: TcpStream) {
                 "/"
             };
 
-            let base_dir = std::env::var("MP3_DIR").unwrap_or_else(|_| ".".to_string());
+            let base_dir = env::var("MP3_DIR").unwrap_or_else(|_| ".".to_string());
+            println!("{}", base_dir.to_string());
             let path = path.trim_start_matches("/");
             let full_path = Path::new(&base_dir).join(path);
 
