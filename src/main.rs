@@ -5,8 +5,10 @@ use std::path::Path;
 fn main() {
     load_env_file(".env");
 
-    let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
-    println!("Server running on http://0.0.0.0:3000");
+    let port = env::var("PORT").unwrap_or_else(|_| "12345".to_string());
+    let addr = format!("0.0.0.0:{}", port);
+    let listener = TcpListener::bind(&addr).unwrap();
+    println!("Server running on http://{}", addr);
 
     for stream in listener.incoming() {
         match stream {
@@ -58,7 +60,6 @@ fn handle_connection(mut stream: TcpStream) {
             };
 
             let base_dir = env::var("MP3_DIR").unwrap_or_else(|_| ".".to_string());
-            println!("{}", base_dir.to_string());
             let path = path.trim_start_matches("/");
             let full_path = Path::new(&base_dir).join(path);
 
