@@ -18,6 +18,46 @@ fn main() {
     }
 }
 
+fn url_encode(input: &str) -> String {
+    input.chars().map(|c| {
+        match c {
+            ' ' => "%20".to_string(),
+            '"' => "%22".to_string(),
+            '#' => "%23".to_string(),
+            c => c.to_string(),
+        }
+    }).collect()
+}
+
+fn url_decode(input: &str) -> String {
+    let mut chars = input.chars().peekable();
+    let mut output = String::new();
+
+    while let Some(c) = chars.next() {
+        if c == '%' {
+            let hi = chars.next();
+            let lo = chars.next();
+
+            if let (Some(hi), Some(lo)) = (hi, lo) {
+                let hex = format!("{}{}", hi, lo);
+                if let Ok(byte) = u8::from_str_radix(&hex, 16) {
+                    output.push(byte as char);
+                } else {
+                    output.push('%');
+                    output.push(hi);
+                    output.push(lo);
+                }
+            } else {
+                output.push(c);
+            }
+        } else {
+            output.push(c);
+        }
+    }
+
+    output
+}
+
 fn load_env_file(path: &str) {
     if let Ok(file) = fs::File::open(path) {
         let reader = BufReader::new(file);
@@ -60,18 +100,22 @@ fn handle_connection(mut stream: TcpStream) {
             };
 
             let base_dir = env::var("MP3_DIR").unwrap_or_else(|_| ".".to_string());
-            let path = path.trim_start_matches("/");
-            let full_path = Path::new(&base_dir).join(path);
 
-            let (status_line, content, content_type) = if path == "" {
+            let decoded_path = url_decode(path);
+            let decoded_path = decoded_path.trim_start_matches("/");
+            let full_path = Path::new(&base_dir).join(decoded_path);
+
+            let (status_line, content, content_type) = if decoded_path.is_empty() {
                 match fs::read_dir(base_dir) {
                     Ok(entries) => {
                         let mut mp3s = Vec::new();
                         for entry in entries.flatten() {
                             let file_name = entry.file_name();
                             let name = file_name.to_string_lossy();
+
                             if name.ends_with(".mp3") {
-                                mp3s.push(format!("\"{}\"", name));
+                                let encoded = url_encode(&name);
+                                mp3s.push(format!("\"{}\"", encoded));
                             }
                         }
                         let json = format!("[{}]", mp3s.join(","));
