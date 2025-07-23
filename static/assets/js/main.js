@@ -60,7 +60,7 @@ function playTrack(index) {
   audio.play();
 
   document.getElementById("track-" + index).classList.add("active-song");
-  playPauseBtn.innerHTML = "❚❚";
+  playPauseBtn.innerHTML = "&#x23F8;";
 }
 
 playPauseBtn.onclick = () => {
@@ -69,11 +69,11 @@ playPauseBtn.onclick = () => {
       playTrack(0);
     } else {
       audio.play();
-      playPauseBtn.innerHTML = "❚❚";
+      playPauseBtn.innerHTML = "&#x23F8;";
     }
   } else {
     audio.pause();
-    playPauseBtn.innerHTML = "▶";
+    playPauseBtn.innerHTML = "&#x23F5;";
   }
 };
 
@@ -96,5 +96,3 @@ audio.onended = () => {
 };
 
 fetchTracks();
-
-//
