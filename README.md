@@ -1,1 +1,1 @@
-A simple CDN for hosting files on my local network
+A simple MP3 player for playing files on my local network
